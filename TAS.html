@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>Page Title</title>
+</head>
+
+<body>
+    <canvas id="myCanvas" width="1000" height="600" style="border:2px solid #ff0000"></canvas>
+    <p>Massa Sumber Gravitasi
+    <input type="range" id="m1"></input>
+    <p>Massa bola biru
+    <input type="range" id="m2"></input>
+    <script src="pertemuan 01 objekbola.js"></script></p>
+    <script src="Planet.js"></script>
+    <script src="Particle.js"></script>
+    <script>
+        var canvas = document.getElementById('myCanvas');
+        var m1=document.getElementById('m1');
+        var m2=document.getElementById('m2');
+        var sizePlanet=25*m1.value*2/100;
+        var sizeParticle=3*m2.value*2/100;
+        var ctx = canvas.getContext('2d');
+        var gravBall = new Planet(sizePlanet);
+        gravBall.start(500,300);
+        var particleBesar=[];
+        var particleKecil=[];
+        var count =0;
+        var boom=false;
+        window.addEventListener("mousedown", mousedn, true);
+        var yangDipencet = {}; 
+        window.addEventListener("keydown", keydn, true); 
+        window.addEventListener("keyup", keyup, true);
+        function keydn(e){ 
+            yangDipencet[e.keyCode] = true ; //bikin tombol yg dipencet true
+            if(yangDipencet[13]==true){
+                boom=true;
+            }  
+        }
+        function keyup(e){
+            boom=false;
+        }
+        
+
+        function mousedn(e){
+            var rect = canvas.getBoundingClientRect();
+            var msx=e.pageX-rect.left;
+            var msy=e.pageY-rect.top;
+            var jarak=Math.sqrt(Math.pow(gravBall.bola.x-msx,2)+Math.pow(gravBall.bola.y-msy,2));
+
+            if(jarak<gravBall.bola.radius){
+                window.addEventListener("mousemove", mousemv,true);
+                window.addEventListener("mouseup", mouseup, true);
+                
+            }
+        }
+        
+        function mousemv(e){
+            var rect = canvas.getBoundingClientRect();
+            var x,y;
+            if(e.pageX || e.pageY){
+                x = e.pageX;
+                y = e.pageY;
+            }
+            else{
+                x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+                y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+            }
+            x -= canvas.offsetLeft;
+            y -= canvas.offsetTop;
+            gravBall.start(x,y);
+        }
+        function mouseup(e){
+            window.removeEventListener("mousemove",mousemv,true);
+            window.removeEventListener("mouseup",mouseup,true);
+        }
+
+        function draw(){
+            sizePlanet=25*m1.value*2/100;
+            sizeParticle=3*m2.value*2/100;
+            
+            gravBall.change(sizePlanet);
+            if(count<=50) {
+                if(count%5==0){
+                    particleKecil.push(new Particle(sizeParticle,"blue"));
+                    particleKecil[count/5].setPosisi(100,200);
+                    particleKecil[count/5].setKecepatan(-Math.random()*2 + 2 , Math.random()*5 + 5);
+                    particleBesar.push(new Particle(sizeParticle+7,"blue"));
+                    particleBesar[count/5].setPosisi(700,300);
+                    particleBesar[count/5].setKecepatan(0 , -(5+Math.random()*5));
+                }
+                count++;
+
+            }
+            ctx.clearRect(0,0,1000,600);
+            gravBall.draw(ctx);
+            for(i=0;i<particleBesar.length;i++){
+                particleKecil[i].draw(ctx);
+                particleBesar[i].draw(ctx);
+                particleKecil[i].radius=sizeParticle;
+                particleBesar[i].radius=sizeParticle+7;
+                
+                if(count >= i){
+                    particleKecil[i].x += particleKecil[i].vx;
+                    particleKecil[i].y += particleKecil[i].vy;
+                    particleBesar[i].x += particleBesar[i].vx;
+                    particleBesar[i].y += particleBesar[i].vy;
+                }
+            }
+            //--check boundary--
+            for(i=0;i<particleBesar.length;i++){
+                if(particleBesar[i].y>=600||particleBesar[i].y<=0){
+                    particleBesar[i].vy *= -1;
+                }
+                if(particleBesar[i].x>=1000||particleBesar[i].x<=0){
+                    particleBesar[i].vx *= -1;
+                }
+                
+            }
+            for(i=0;i<particleKecil.length;i++){
+                if(particleKecil[i].y>=600||particleKecil[i].y<=0){
+                    particleKecil[i].vy *= -1;
+                }
+                if(particleKecil[i].x>=1000||particleKecil[i].x<=0){
+                    particleKecil[i].vx *= -1;
+                }
+                
+            }
+            //---------------------
+            //--effect gravitasi terhadap partikel yang besar--
+            for(i=0;i<particleBesar.length;i++){
+                var x = (gravBall.bola.x - particleBesar[i].x);
+                var y = (gravBall.bola.y - particleBesar[i].y);
+                var xK = Math.pow(x,2);
+                var yK= Math.pow(y,2);
+                var jarak = Math.sqrt(xK+yK);
+                var efekGrav=0;
+                if(jarak<=gravBall.range){
+                    efekGrav = (1 - Math.pow((jarak/gravBall.range),2))*gravBall.gravitasi*sizePlanet/25*sizeParticle/3;
+                    if(jarak<particleBesar[i].radius+gravBall.bola.radius){
+                        particleBesar[i].x=gravBall.bola.x-((x/jarak)*(particleBesar[i].radius+gravBall.bola.radius));
+                        particleBesar[i].y=gravBall.bola.y-((y/jarak)*(particleBesar[i].radius+gravBall.bola.radius));
+                        particleBesar[i].vx*=-0.5-Math.random()/2;
+                        particleBesar[i].vy*=-0.5-Math.random()/2;
+                        if(boom){
+                            particleBesar[i].vx=(x/jarak)*-30;
+                            particleBesar[i].vy=(y/jarak)*-30;
+                        }
+                    }
+                }
+                var aX = (x/jarak)*efekGrav;
+                var aY = (y/jarak)*efekGrav;
+                //tambahan code buat atmosfer
+                if(jarak<=gravBall.rangeAtmosfer){
+                    aX -= particleBesar[i].vx*gravBall.gayaGesek;
+                    aY -= particleBesar[i].vy*gravBall.gayaGesek;
+                }
+                particleBesar[i].vx += aX;
+                particleBesar[i].vy += aY;
+                //---------------------
+            }
+            //effect billiard
+            for(i=0;i<particleBesar.length-1;i++){
+                for(var j=i+1;j<particleBesar.length;j++){
+                    
+                    x = (particleBesar[i].x - particleBesar[j].x);
+                    y = (particleBesar[i].y - particleBesar[j].y);
+                    xK = Math.pow(x,2);
+                    yK= Math.pow(y,2);
+                    jarak = Math.sqrt(xK+yK);
+                    if(jarak<particleBesar[i].radius+particleBesar[j].radius){
+                        var vxTotal = particleBesar[i].vx - particleBesar[j].vx;
+                        var vyTotal = particleBesar[i].vy - particleBesar[j].vy;
+                        particleBesar[j].antiIrisSesama(particleBesar[i],jarak,x,y);
+                        particleBesar[i].vx = ((particleBesar[i].radius - particleBesar[j].radius) * particleBesar[i].vx + 2 * particleBesar[j].radius * particleBesar[j].vx) /(particleBesar[i].radius + particleBesar[j].radius);
+                        particleBesar[j].vx = vxTotal + particleBesar[i].vx;
+                        
+                        particleBesar[i].vy = ((particleBesar[i].radius - particleBesar[j].radius) * particleBesar[i].vy + 2 * particleBesar[j].radius * particleBesar[j].vy) /(particleBesar[i].radius + particleBesar[j].radius);
+                        particleBesar[j].vy = vyTotal + particleBesar[i].vy;
+                    }
+                }
+            }
+            //-----------------
+            //effect gravitasi terhadap partikel yang kecil
+            for(i=0;i<particleKecil.length;i++){
+                var x = (gravBall.bola.x - particleKecil[i].x);
+                var y = (gravBall.bola.y - particleKecil[i].y);
+                var xK = Math.pow(x,2);
+                var yK= Math.pow(y,2);
+                var jarak = Math.sqrt(xK+yK);
+                var efekGrav=0;
+                if(jarak<=gravBall.range){
+                    efekGrav = (1 - Math.pow((jarak/gravBall.range),2))*gravBall.gravitasi;
+                    if(jarak<particleKecil[i].radius+gravBall.bola.radius){
+                        particleKecil[i].x=gravBall.bola.x-((x/jarak)*(particleKecil[i].radius+gravBall.bola.radius));
+                        particleKecil[i].y=gravBall.bola.y-((y/jarak)*(particleKecil[i].radius+gravBall.bola.radius));
+                        particleKecil[i].vx*=-0.5-Math.random()/2;
+                        particleKecil[i].vy*=-0.5-Math.random()/2;
+                        if(boom){
+                            particleKecil[i].vx=(x/jarak)*-30;
+                            particleKecil[i].vy=(y/jarak)*-30;
+                        }
+                    }
+                }
+                var aX = (x/jarak)*efekGrav;
+                var aY = (y/jarak)*efekGrav;
+                if(jarak<=gravBall.rangeAtmosfer){
+                    aX -= particleKecil[i].vx*gravBall.gayaGesek;
+                    aY -= particleKecil[i].vy*gravBall.gayaGesek;
+                }
+                particleKecil[i].vx += aX;
+                particleKecil[i].vy += aY;
+                
+
+            }
+        }
+        setInterval(draw,17);
+    </script>
+</body>
+</html>
